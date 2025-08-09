@@ -1,11 +1,10 @@
-use serde::de::value::Error;
 use serde::{Serialize, Deserialize};
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Read};
+use std::io::{BufReader, Read, Write};
 use std::path::Path;
 use anyhow::Result;
 use std::vec;
-
+use rmp_serde;
 use crate::util::hash::keccak_256;
 
 const CHUNK_SIZE:usize  = 256 * 1024;
@@ -29,6 +28,15 @@ pub struct  DimManifest{
     pub file_size: u64,
     pub chunk_size: usize,
     pub chunks: Vec<ChunkInfo>,
+}
+
+impl  DimManifest {
+ pub fn save_to_dim_manifest<P: AsRef<Path>>(&self, file_path: P) -> Result<()>{
+    let bytes = rmp_serde::to_vec(&self)?;
+    let mut file = File::create(file_path)?;
+    file.write_all(&bytes)?;
+    Ok(())
+}   
 }
 
 pub fn  create_manifest<P: AsRef<Path>>(file_path: P)  -> Result<DimManifest>{

@@ -3,11 +3,18 @@ mod dim;
 
 use std::env;
 use  util::hash::keccak_256;
-use  dim::manifest::create_manifest;
+use  dim::manifest::{create_manifest};
  fn main() {
 
     let input_file = env::args().nth(1).expect("Expect a file ");
 
-    let chuncks = create_manifest(input_file);
+    let chuncks = create_manifest(input_file).unwrap();
+    if let Some((file_name, _)) = &chuncks.file_name.split_once("."){
+        let dim_file = format!("{}.dim", &file_name);
+        
+        let _= chuncks.save_to_dim_manifest(dim_file);
+    }
+
+   
     println!("{:#?}", chuncks);
 }
