@@ -1,8 +1,7 @@
 use sqlx::PgPool;
 use anyhow::Result;
 use crate::util::hash::keccak_256;
-use crate::dim::manifest::{self, DimManifest};
-use crate::db::storage::manifest::ChunkInfo;
+use crate::dim::manifest::{ DimManifest, ChunkInfo};
 pub struct PgStorage{
 pub pool: PgPool,
 }
@@ -65,6 +64,106 @@ impl  PgStorage {
         .await?;
 
         Ok(())
+    }
+
+
+    pub async fn load_manifest_by_hash(&self, manifest_hash: &[u8]) -> Result<Option<DimManifest>> {
+        // Find file row
+        let rec = sqlx::query!(
+            r#"
+            SELECT id, file_name, file_size, chunk_size
+            FROM files
+            WHERE manifest_hash = $1
+            "#,
+            manifest_hash
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let rec = match rec {
+            Some(r) => r,
+            None => return Ok(None),
+        };
+
+        let file_id = rec.id;
+        let file_name = rec.file_name;
+        let file_size = rec.file_size as u64;
+        let chunk_size = rec.chunk_size as usize;
+
+        let rows = sqlx::query!(
+            r#"
+            SELECT chunk_index, chunk_hash, chunk_size
+            FROM chunks
+            WHERE file_id = $1
+            ORDER BY chunk_index
+            "#,
+            file_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut chunks: Vec<ChunkInfo> = Vec::with_capacity(rows.len());
+        for row in rows {
+            chunks.push(ChunkInfo {
+                index: row.chunk_index as usize,
+                hash: row.chunk_hash,
+                size: row.chunk_size as usize,
+            });
+        }
+
+        let manifest = DimManifest {
+            file_name,
+            file_size,
+            chunk_size,
+            chunks,
+        };
+
+        Ok(Some(manifest))
+    }
+
+    pub async fn load_manifest_by_id(&self, file_id: i32) -> Result<DimManifest> {
+        let rec = sqlx::query!(
+            r#"
+            SELECT file_name, file_size, chunk_size
+            FROM files
+            WHERE id = $1
+            "#,
+            file_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        let file_name = rec.file_name;
+        let file_size = rec.file_size as u64;
+        let chunk_size = rec.chunk_size as usize;
+
+        let rows = sqlx::query!(
+            r#"
+            SELECT chunk_index, chunk_hash, chunk_size
+            FROM chunks
+            WHERE file_id = $1
+            ORDER BY chunk_index
+            "#,
+            file_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut chunks: Vec<ChunkInfo> = Vec::with_capacity(rows.len());
+        for row in rows {
+            chunks.push(ChunkInfo {
+                index: row.chunk_index as usize,
+                hash: row.chunk_hash,
+                size: row.chunk_size as usize,
+            });
+        }
+
+        Ok(DimManifest {
+            file_name,
+            file_size,
+            chunk_size,
+            chunks,
+        })
     }
 }
 
