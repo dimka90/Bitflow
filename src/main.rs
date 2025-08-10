@@ -2,9 +2,13 @@ mod util;
 mod dim;
 mod db;
 use std::env;
+use dotenv::dotenv;
 use  util::hash::keccak_256;
 use  dim::manifest::{create_manifest};
  fn main() {
+      dotenv().ok(); 
+      let database_url = env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set");
 
     let input_file = env::args().nth(1).expect("Expect a file ");
 
