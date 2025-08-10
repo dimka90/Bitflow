@@ -65,10 +65,8 @@ impl  PgStorage {
 
         Ok(())
     }
-
-
+    
     pub async fn load_manifest_by_hash(&self, manifest_hash: &[u8]) -> Result<Option<DimManifest>> {
-        // Find file row
         let rec = sqlx::query!(
             r#"
             SELECT id, file_name, file_size, chunk_size

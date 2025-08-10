@@ -42,7 +42,7 @@ impl DimManifest {
         Ok(())
     }
 
-    pub fn load_dim_manifest<P: AsRef<Path>>( file_path: P) -> Result<DimManifest> {
+    pub fn load_dim_manifest<P: AsRef<Path>>(&self, file_path: P) -> Result<DimManifest> {
         let mut file = File::open(file_path)?;
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer)?;
