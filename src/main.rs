@@ -1,6 +1,6 @@
 mod util;
 mod dim;
-
+mod db;
 use std::env;
 use  util::hash::keccak_256;
 use  dim::manifest::{create_manifest};
@@ -16,5 +16,6 @@ use  dim::manifest::{create_manifest};
         let _= chuncks.save_to_dim_manifest(dim_file);
     }
    let result =  chuncks.load_dim_manifest("main.dim").unwrap();
-   println!("Data: {:#?}", result);
+   result.verify_all_chuncks("main.rs");
+   println!("All chunks verified successfully!");
 }
