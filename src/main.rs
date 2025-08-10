@@ -3,9 +3,12 @@ mod dim;
 mod db;
 use std::env;
 use dotenv::dotenv;
+use crate::db::storage::PgStorage;
 use  util::hash::keccak_256;
 use  dim::manifest::{create_manifest};
- fn main() {
+use anyhow::Result;
+#[tokio::main]
+async fn main() -> Result<()>{
       dotenv().ok(); 
       let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
@@ -13,7 +16,6 @@ use  dim::manifest::{create_manifest};
     let input_file = env::args().nth(1).expect("Expect a file ");
 
     let chuncks = create_manifest(input_file).unwrap();
-    println!("Mainifest: {:?}", chuncks);
     if let Some((file_name, _)) = &chuncks.file_name.split_once("."){
         let dim_file = format!("{}.dim", &file_name);
         
@@ -21,5 +23,10 @@ use  dim::manifest::{create_manifest};
     }
    let result =  chuncks.load_dim_manifest("main.dim").unwrap();
    result.verify_all_chuncks("main.rs");
+    let storage = PgStorage::new(&database_url).await?;
+    storage.store_manifest(&chuncks).await?;
+    println!("Manifest and chunks stored in the database.");
    println!("All chunks verified successfully!");
+
+   Ok(())
 }

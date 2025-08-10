@@ -19,6 +19,16 @@ impl  PgStorage {
         let manifest_bytes = rmp_serde::to_vec(manifest)?;
         let manifest_hash = keccak_256(&manifest_bytes);
 
+           if let Some(existing_file_id) = sqlx::query_scalar!(
+        "SELECT id FROM files WHERE manifest_hash = $1",
+        &manifest_hash[..]
+          )
+        .fetch_optional(&self.pool)
+                .await?
+                 {
+            println!("Content Id already exist {:?}", existing_file_id);
+            return Ok(());
+                }
         let file_id: i32 = sqlx::query_scalar!(
             r#"
             INSERT INTO files (file_name, file_size, chunk_size, manifest_hash)
